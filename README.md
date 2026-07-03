@@ -39,6 +39,8 @@ carries differential oracles, and Isabelle is used where an all-sizes proof is w
 | `fac17_count` | UNSAT/SAT | factorized aggregation: `|R⋈S| = Σ_y |R_y|·|S_y|` equals enumerate-and-count while touching fewer rows — the asymptotic win WCO cannot match |
 | `fac18_count_routing` | UNSAT/SAT | routing the CountSink to the factorized engine is sound iff the projection keeps all variables: distinct-output count equals match count under a full projection, and strictly undercounts once a variable is dropped |
 | `fac19_semijoin_domain` | UNSAT/SAT | routing the SumSink (SUM DISTINCT of a column) is sound via Yannakakis semi-join reduction: the free-variable EXISTS-elimination domain equals the join's projection onto that column, and a dangling tuple (no join partner) is correctly excluded |
+| `fac20_grouping_decline` | UNSAT/SAT | the aggregate gate must decline grouping: with no grouping variable the aggregate is one total fact (matches the scalar), but a grouping variable can emit one fact per distinct value, more than the single scalar |
+| `fac21_sumsum_not_sumprod` | SAT/UNSAT | SUM(DISTINCT) is not a COUNT-style weight-swap: weighting each fact by its column value sums with multiplicity and disagrees with the distinct sum once a value repeats; they coincide only for an injective column (so the semi-join domain is required) |
 | `partition`, `partition2` | UNSAT | the ProductZipper parallel work-partition is a correct cover (single-factor, and across the stitch) |
 
 ## The through-line
@@ -55,4 +57,8 @@ CountSink counts distinct *outputs*, not matches, so it pins the exact gate unde
 be routed to the factorized engine — the projection must keep every variable — and exhibits the
 undercount when it does not. `fac19` does the same for the SumSink: a `SUM(DISTINCT col)` routes
 through a Yannakakis semi-join reduction, because the free-variable EXISTS-elimination domain of the
-summed column equals the join's projection onto it, dangling tuples excluded.
+summed column equals the join's projection onto it, dangling tuples excluded. `fac20` and `fac21`
+pin the two remaining gate decisions: grouping must be declined (a grouping variable emits one fact
+per group, not one scalar), and SUM must use the distinct semi-join domain rather than a
+weight-swap (which would sum with multiplicity). Together `fac16`-`fac21` are the full soundness
+argument for the factorized COUNT/SUM routing wired into MORK.
