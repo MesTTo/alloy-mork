@@ -38,6 +38,7 @@ carries differential oracles, and Isabelle is used where an all-sizes proof is w
 | `fac16_pushdown` | UNSAT/SAT | projection pushdown is sound **only for a variable local to one relation** — a join variable cannot be pushed out, which is why WCO enumeration cannot be beaten |
 | `fac17_count` | UNSAT/SAT | factorized aggregation: `|R⋈S| = Σ_y |R_y|·|S_y|` equals enumerate-and-count while touching fewer rows — the asymptotic win WCO cannot match |
 | `fac18_count_routing` | UNSAT/SAT | routing the CountSink to the factorized engine is sound iff the projection keeps all variables: distinct-output count equals match count under a full projection, and strictly undercounts once a variable is dropped |
+| `fac19_semijoin_domain` | UNSAT/SAT | routing the SumSink (SUM DISTINCT of a column) is sound via Yannakakis semi-join reduction: the free-variable EXISTS-elimination domain equals the join's projection onto that column, and a dangling tuple (no join partner) is correctly excluded |
 | `partition`, `partition2` | UNSAT | the ProductZipper parallel work-partition is a correct cover (single-factor, and across the stitch) |
 
 ## The through-line
@@ -52,4 +53,6 @@ factorized-count implementation on top of MORK's WCO join with a measured, growi
 (a dropped exponent, not a constant factor). `fac18` closes the loop to the running system: MORK's
 CountSink counts distinct *outputs*, not matches, so it pins the exact gate under which the sink may
 be routed to the factorized engine — the projection must keep every variable — and exhibits the
-undercount when it does not.
+undercount when it does not. `fac19` does the same for the SumSink: a `SUM(DISTINCT col)` routes
+through a Yannakakis semi-join reduction, because the free-variable EXISTS-elimination domain of the
+summed column equals the join's projection onto it, dangling tuples excluded.
