@@ -37,6 +37,7 @@ carries differential oracles, and Isabelle is used where an all-sizes proof is w
 | `fac14_ghd` | UNSAT/SAT | generalized hypertree decomposition is sound: under the cover condition, the join of the bags equals the join of all relations |
 | `fac16_pushdown` | UNSAT/SAT | projection pushdown is sound **only for a variable local to one relation** — a join variable cannot be pushed out, which is why WCO enumeration cannot be beaten |
 | `fac17_count` | UNSAT/SAT | factorized aggregation: `|R⋈S| = Σ_y |R_y|·|S_y|` equals enumerate-and-count while touching fewer rows — the asymptotic win WCO cannot match |
+| `fac18_count_routing` | UNSAT/SAT | routing the CountSink to the factorized engine is sound iff the projection keeps all variables: distinct-output count equals match count under a full projection, and strictly undercounts once a variable is dropped |
 | `partition`, `partition2` | UNSAT | the ProductZipper parallel work-partition is a correct cover (single-factor, and across the stitch) |
 
 ## The through-line
@@ -48,4 +49,7 @@ factorized-aggregation line: they establish that the WCO join is output-optimal 
 (so it cannot be beaten there), and that the remaining asymptotic win is **aggregation** — a
 COUNT/SUM factorizes into a sum-of-products and runs in O(N^fhtw), not O(output). That model drove a
 factorized-count implementation on top of MORK's WCO join with a measured, growing speedup
-(a dropped exponent, not a constant factor).
+(a dropped exponent, not a constant factor). `fac18` closes the loop to the running system: MORK's
+CountSink counts distinct *outputs*, not matches, so it pins the exact gate under which the sink may
+be routed to the factorized engine — the projection must keep every variable — and exhibits the
+undercount when it does not.
