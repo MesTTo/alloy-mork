@@ -41,6 +41,8 @@ carries differential oracles, and Isabelle is used where an all-sizes proof is w
 | `fac19_semijoin_domain` | UNSAT/SAT | routing the SumSink (SUM DISTINCT of a column) is sound via Yannakakis semi-join reduction: the free-variable EXISTS-elimination domain equals the join's projection onto that column, and a dangling tuple (no join partner) is correctly excluded |
 | `fac20_grouping_decline` | UNSAT/SAT | the aggregate gate must decline grouping: with no grouping variable the aggregate is one total fact (matches the scalar), but a grouping variable can emit one fact per distinct value, more than the single scalar |
 | `fac21_sumsum_not_sumprod` | SAT/UNSAT | SUM(DISTINCT) is not a COUNT-style weight-swap: weighting each fact by its column value sums with multiplicity and disagrees with the distinct sum once a value repeats; they coincide only for an injective column (so the semi-join domain is required) |
+| `fac22_term_identity` | UNSAT/UNSAT/SAT | the term-identity sidecar refactor is sound: the `structural_hash`→`Expr::hash` swap preserves canonical identity (the 128-bit hash is only a collision-bucket filter; exact bytes decide, so any deterministic hash is safe), and the COW `shared_node_id` staleness never reuses a subspace whose facts changed |
+| `fac23_egraph_sink` | UNSAT×3/SAT | wiring the scoped e-graph as a sink/source is sound: taking egg's congruence closure as given, the source reads it correctly through extraction — terms pushed equal and terms equal only by congruence both read the same cheapest-extracted representative, exactly one canonical per class |
 | `partition`, `partition2` | UNSAT | the ProductZipper parallel work-partition is a correct cover (single-factor, and across the stitch) |
 
 ## The through-line
