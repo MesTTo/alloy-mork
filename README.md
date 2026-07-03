@@ -1,0 +1,51 @@
+# Alloy MORK
+
+Formal [Alloy](https://alloytools.org/) models of MORK's correctness-critical mechanics and the
+asymptotic optimizations built on top of them. Each model is a small, bounded-scope specification
+that either proves an invariant holds (no counterexample in scope) or exhibits the counterexample
+that pins a requirement. Several caught real bugs before any Rust was written.
+
+MORK is a minimal-MeTTa graph-rewrite engine over a 256-radix byte trie (PathMap). These models
+cover its join, matcher, fixpoint, copy-on-write sharing, and the hypertree-decomposition /
+factorized-aggregation work.
+
+## Running
+
+```
+java -jar ~/.local/share/alloy/alloy.jar exec facN.als
+```
+
+Reading the output: `check ... UNSAT` means the assertion holds (no counterexample within the
+scope); `SAT` means a counterexample was found. For a `run`, `SAT` means a witness exists. Alloy's
+small-scope hypothesis makes a clean UNSAT strong evidence, not an all-sizes proof; the Rust side
+carries differential oracles, and Isabelle is used where an all-sizes proof is wanted.
+
+## The models
+
+| file | verdict | what it establishes |
+|------|---------|---------------------|
+| `fac1_order` | SAT witness | trie factorization is order-dependent (a relation is compact in one column order, flat in another) |
+| `fac2_fixpoint` | Conflict UNSAT | **theorem**: one canonical trie order is scan-free for a fixpoint iff the rules' bound-column-sets form a chain under subset; incomparable sets force a flat scan |
+| `fac6_drep_cover` | SAT/UNSAT/SAT | Dilworth: the minimum number of trie orders (a d-representation) equals the max antichain of the bound-set poset (a 3-antichain needs exactly 3) |
+| `fac7_factorized_match` | UNSAT/SAT | matching a pattern directly on un-expanded factorized output is sound; the wrong pruning is caught |
+| `fac4_incremental` | UNSAT/SAT | the incremental self-join delta rule `dJ = D∘R' ∪ R∘D` is exact; the tempting shortcut drops tuples |
+| `fac8_seminaive_fixpoint` | UNSAT/SAT | semi-naive evaluation equals naive **only under the closure invariant**; without it, facts are missed |
+| `fac5_cow_staleness` | UNSAT/SAT | incremental recomputation must key on the **join variable** subtries, not the output-variable subtries |
+| `fac13_cow_merkle` | SAT/UNSAT | the COW node-identity staleness skip is sound iff identity is **structural** (collision-free), not a lossy hash |
+| `fac9_coref_match` | UNSAT/SAT | coreferential (repeated-variable) matching is a real restriction; ignoring it is unsound |
+| `fac10_space_algebra` | UNSAT | the space is a ring: composition distributes over union (the factorization / F-IVM enabler) |
+| `fac14_ghd` | UNSAT/SAT | generalized hypertree decomposition is sound: under the cover condition, the join of the bags equals the join of all relations |
+| `fac16_pushdown` | UNSAT/SAT | projection pushdown is sound **only for a variable local to one relation** — a join variable cannot be pushed out, which is why WCO enumeration cannot be beaten |
+| `fac17_count` | UNSAT/SAT | factorized aggregation: `|R⋈S| = Σ_y |R_y|·|S_y|` equals enumerate-and-count while touching fewer rows — the asymptotic win WCO cannot match |
+| `partition`, `partition2` | UNSAT | the ProductZipper parallel work-partition is a correct cover (single-factor, and across the stitch) |
+
+## The through-line
+
+`fac1`, `fac2`, `fac6`, `fac7` map out where a single-order trie can and cannot be factorized.
+`fac4`, `fac5`, `fac8`, `fac13` cover incremental (semi-naive) maintenance and the copy-on-write
+staleness oracle. `fac14`, `fac16`, `fac17` are the hypertree-decomposition and
+factorized-aggregation line: they establish that the WCO join is output-optimal for *enumeration*
+(so it cannot be beaten there), and that the remaining asymptotic win is **aggregation** — a
+COUNT/SUM factorizes into a sum-of-products and runs in O(N^fhtw), not O(output). That model drove a
+factorized-count implementation on top of MORK's WCO join with a measured, growing speedup
+(a dropped exponent, not a constant factor).
